@@ -22,6 +22,7 @@
             --light-gray: #F8F9FA;
             --dark-gray: #343A40;
             --sidebar-width: 260px;
+            --sidebar-collapsed-width: 70px;
             --header-height: 70px;
             --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -648,22 +649,61 @@
             z-index: 100;
         }
 
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
         .sidebar-header {
             padding: 20px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .sidebar-header i {
-            font-size: 24px;
-            margin-right: 10px;
-            color: var(--danger);
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
         }
 
-        .sidebar-header h3 {
+        .sidebar-logo i {
+            font-size: 24px;
+            color: var(--danger);
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo h3 {
             font-size: 20px;
             font-weight: 700;
+            margin-left: 10px;
+            white-space: nowrap;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .sidebar-logo h3 {
+            opacity: 0;
+            width: 0;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 18px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-menu {
@@ -678,6 +718,7 @@
             text-decoration: none;
             transition: var(--transition);
             position: relative;
+            white-space: nowrap;
         }
 
         .menu-item:hover {
@@ -702,6 +743,20 @@
             margin-right: 15px;
             width: 20px;
             text-align: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar.collapsed .menu-item i {
+            margin-right: 0;
+        }
+
+        .menu-item span {
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .menu-item span {
+            opacity: 0;
+            width: 0;
         }
 
         .menu-item .badge {
@@ -719,6 +774,39 @@
             align-items: center;
             font-size: 11px;
             font-weight: 700;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar.collapsed .menu-item .badge {
+            opacity: 0;
+        }
+
+        /* Tooltip for collapsed sidebar */
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 10px;
+            background: var(--dark);
+            color: var(--light);
+            padding: 8px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar.collapsed .menu-item:hover::after {
+            opacity: 1;
         }
 
         /* Main Content */
@@ -727,6 +815,11 @@
             margin-left: var(--sidebar-width);
             display: flex;
             flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
         }
 
         .header {
@@ -1697,8 +1790,13 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-seedling"></i>
-                <h3>Farmpay</h3>
+                <div class="sidebar-logo">
+                    <i class="fas fa-seedling"></i>
+                    <h3>Farmpay</h3>
+                </div>
+                <button class="sidebar-toggle" id="sidebar-toggle-btn">
+                    <i class="fas fa-chevron-left" id="sidebar-toggle-icon"></i>
+                </button>
             </div>
             <nav class="sidebar-menu" id="sidebar-menu">
                 <!-- Menu items will be dynamically generated -->
@@ -1706,7 +1804,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="main-content">
+        <main class="main-content" id="main-content">
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
@@ -1834,6 +1932,7 @@
         let roles = [];
         let expenditures = [];
         let messages = [];
+        let sidebarCollapsed = false;
 
         // Set current year
         document.getElementById('current-year').textContent = new Date().getFullYear();
@@ -1866,12 +1965,14 @@
             const storedRoles = localStorage.getItem('farmpay_roles');
             const storedExpenditures = localStorage.getItem('farmpay_expenditures');
             const storedMessages = localStorage.getItem('farmpay_messages');
+            const storedSidebarState = localStorage.getItem('farmpay_sidebar_collapsed');
             
             users = storedUsers ? JSON.parse(storedUsers) : [];
             attendance = storedAttendance ? JSON.parse(storedAttendance) : [];
             payments = storedPayments ? JSON.parse(storedPayments) : [];
             expenditures = storedExpenditures ? JSON.parse(storedExpenditures) : [];
             messages = storedMessages ? JSON.parse(storedMessages) : [];
+            sidebarCollapsed = storedSidebarState === 'true';
             roles = storedRoles ? JSON.parse(storedRoles) : [
                 { id: 1, name: 'Superadmin', permissions: ['all'] },
                 { id: 2, name: 'Manager', permissions: ['approve_payments', 'view_reports', 'manage_users'] },
@@ -1987,6 +2088,13 @@
             // Update user name
             document.getElementById('user-name').textContent = currentUser.name;
             
+            // Apply saved sidebar state
+            if (sidebarCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('main-content').classList.add('expanded');
+                document.getElementById('sidebar-toggle-icon').className = 'fas fa-chevron-right';
+            }
+            
             // Generate sidebar menu based on role
             const sidebarMenu = document.getElementById('sidebar-menu');
             sidebarMenu.innerHTML = '';
@@ -1998,6 +2106,7 @@
                 menuItem.href = '#';
                 menuItem.className = 'menu-item';
                 if (index === 0) menuItem.classList.add('active');
+                menuItem.setAttribute('data-tooltip', item.text);
                 menuItem.innerHTML = `
                     <i class="${item.icon}"></i>
                     <span>${item.text}</span>
@@ -3913,6 +4022,28 @@
 
         document.getElementById('menu-toggle').addEventListener('click', function() {
             document.getElementById('sidebar').classList.toggle('active');
+        });
+
+        // Sidebar toggle functionality
+        document.getElementById('sidebar-toggle-btn').addEventListener('click', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const toggleIcon = document.getElementById('sidebar-toggle-icon');
+            
+            sidebarCollapsed = !sidebarCollapsed;
+            
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                toggleIcon.className = 'fas fa-chevron-left';
+            }
+            
+            // Save sidebar state to localStorage
+            localStorage.setItem('farmpay_sidebar_collapsed', sidebarCollapsed);
         });
 
         // Close dropdowns when clicking outside
