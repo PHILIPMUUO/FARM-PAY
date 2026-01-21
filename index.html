@@ -1,0 +1,4299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmpay - Modern Farm Worker Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #2E7D32;
+            --primary-dark: #1B5E20;
+            --secondary: #D32F2F;
+            --accent: #4CAF50;
+            --danger: #F44336;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --info: #2196F3;
+            --dark: #1A1A1A;
+            --light: #FFFFFF;
+            --gray: #6C757D;
+            --light-gray: #F8F9FA;
+            --dark-gray: #343A40;
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--light-gray);
+            color: var(--dark);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Homepage Styles */
+        .homepage {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
+            position: relative;
+            overflow: hidden;
+            display: none;
+        }
+
+        .homepage.active {
+            display: block;
+        }
+
+        .animated-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .animated-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: bgMove 20s linear infinite;
+        }
+
+        @keyframes bgMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 15px 5%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+            transition: var(--transition);
+        }
+
+        .navbar.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar.scrolled .logo,
+        .navbar.scrolled .nav-links a {
+            color: var(--dark);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--light);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .logo i {
+            margin-right: 12px;
+            font-size: 32px;
+            color: var(--danger);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            position: relative;
+            transition: var(--transition);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 5%;
+            color: var(--light);
+        }
+
+        .hero-content {
+            max-width: 800px;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            margin-bottom: 40px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--danger);
+            color: var(--light);
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(211, 47, 47, 0.6);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--light);
+            border: 2px solid var(--light);
+        }
+
+        .btn-outline:hover {
+            background: var(--light);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .features {
+            padding: 100px 5%;
+            background: var(--light);
+            position: relative;
+            z-index: 2;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 60px;
+            color: var(--primary);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--danger) 100%);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--danger) 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: var(--light);
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--dark);
+        }
+
+        .feature-card p {
+            color: var(--gray);
+            line-height: 1.6;
+        }
+
+        /* About Us Section */
+        .about-us {
+            padding: 100px 5%;
+            background: var(--light-gray);
+            position: relative;
+            z-index: 2;
+        }
+
+        .about-us h2 {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 60px;
+            color: var(--primary);
+        }
+
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .about-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .about-text h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .about-text p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--dark-gray);
+            margin-bottom: 20px;
+        }
+
+        .about-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .about-image img {
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Location Section */
+        .location {
+            padding: 100px 5%;
+            background: var(--light);
+            position: relative;
+            z-index: 2;
+        }
+
+        .location h2 {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 60px;
+            color: var(--primary);
+        }
+
+        .location-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .location-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .location-info h3 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .location-info p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: var(--dark-gray);
+            margin-bottom: 20px;
+        }
+
+        .location-map {
+            height: 400px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .footer {
+            background: var(--dark);
+            color: var(--light);
+            padding: 60px 5% 30px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto 40px;
+        }
+
+        .footer-section h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .footer-section p,
+        .footer-section li {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-section a:hover {
+            color: var(--accent);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .social-links a:hover {
+            background: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .developer-credit {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--light);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 30px;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--gray);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--light-gray);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--light-gray);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: var(--transition);
+            background: var(--light);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .form-options a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .form-options a:hover {
+            color: var(--primary-dark);
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+            min-height: 100vh;
+            background: var(--light-gray);
+        }
+
+        .dashboard.active {
+            display: flex;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--dark);
+            color: var(--light);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: var(--transition);
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header i {
+            font-size: 24px;
+            margin-right: 10px;
+            color: var(--danger);
+        }
+
+        .sidebar-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: var(--light);
+            text-decoration: none;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item.active {
+            background: var(--primary);
+        }
+
+        .menu-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: var(--danger);
+        }
+
+        .menu-item i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-item .badge {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--danger);
+            color: var(--light);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            height: var(--header-height);
+            background: var(--light);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--dark);
+            margin-right: 15px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+
+        .menu-toggle:hover {
+            background: var(--light-gray);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: var(--light-gray);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            font-size: 18px;
+            color: var(--dark);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .notification-btn:hover {
+            background: var(--primary);
+            color: var(--light);
+        }
+
+        .notification-btn .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: var(--light);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .user-dropdown {
+            position: relative;
+        }
+
+        .user-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--light-gray);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-btn:hover {
+            background: var(--primary);
+            color: var(--light);
+        }
+
+        .user-btn img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-btn span {
+            font-weight: 600;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 10px;
+            width: 220px;
+            background: var(--light);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+        }
+
+        .dropdown-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: var(--light-gray);
+        }
+
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--light-gray);
+            margin: 5px 0;
+        }
+
+        .content {
+            padding: 30px;
+            flex: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--light);
+        }
+
+        .stat-icon.primary { background: var(--primary); }
+        .stat-icon.success { background: var(--success); }
+        .stat-icon.warning { background: var(--warning); }
+        .stat-icon.danger { background: var(--danger); }
+        .stat-icon.info { background: var(--info); }
+
+        .stat-info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray);
+            margin-bottom: 4px;
+        }
+
+        .stat-info p {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .card {
+            background: var(--light);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-weight: 700;
+            color: var(--dark);
+            border-bottom: 2px solid var(--light-gray);
+            background: var(--light-gray);
+        }
+
+        .table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .table tr:hover {
+            background: var(--light-gray);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-info {
+            background: rgba(33, 150, 243, 0.1);
+            color: var(--info);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--light-gray);
+            margin-bottom: 24px;
+            gap: 10px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            font-weight: 600;
+            color: var(--gray);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+        }
+
+        .tab:hover {
+            color: var(--dark);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .notification-panel {
+            position: fixed;
+            top: var(--header-height);
+            right: -400px;
+            width: 400px;
+            height: calc(100vh - var(--header-height));
+            background: var(--light);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transition: var(--transition);
+            z-index: 200;
+            overflow-y: auto;
+        }
+
+        .notification-panel.active {
+            right: 0;
+        }
+
+        .notification-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--light-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--gray);
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .notification-close:hover {
+            background: var(--light-gray);
+        }
+
+        .notification-list {
+            padding: 20px;
+        }
+
+        .notification-item {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: var(--light-gray);
+            transition: var(--transition);
+        }
+
+        .notification-item:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-item.unread {
+            background: rgba(46, 125, 50, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .notification-item-title {
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .notification-item-time {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .notification-item-message {
+            color: var(--dark-gray);
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* Print Receipt */
+        .print-receipt {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .print-receipt.active {
+            display: block;
+        }
+
+        .receipt-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: var(--light);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .receipt-logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--primary);
+            color: var(--light);
+            border-radius: 50%;
+            font-size: 40px;
+        }
+
+        .receipt-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px;
+            color: rgba(46, 125, 50, 0.1);
+            z-index: -1;
+        }
+
+        .receipt-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .receipt-subtitle {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .receipt-details {
+            margin-bottom: 30px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .receipt-row:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .receipt-signature {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-box {
+            width: 45%;
+            text-align: center;
+        }
+
+        .signature-line {
+            height: 1px;
+            background-color: var(--dark);
+            margin: 40px 0 10px;
+        }
+
+        .signature-text {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .receipt-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Message System */
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            border: 1px solid var(--light-gray);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .message-header {
+            padding: 16px;
+            background: var(--light-gray);
+            border-bottom: 1px solid var(--light-gray);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .message-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background: var(--primary);
+            color: var(--light);
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background: var(--light-gray);
+            color: var(--dark);
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .message-input {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid var(--light-gray);
+        }
+
+        .message-input input {
+            flex: 1;
+            border: 1px solid var(--light-gray);
+            border-radius: 24px;
+            padding: 10px 16px;
+            margin-right: 8px;
+        }
+
+        .message-input button {
+            background: var(--primary);
+            color: var(--light);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .message-input button:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Expenditure Tracking */
+        .expenditure-form {
+            background: var(--light-gray);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .expenditure-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .expenditure-item {
+            background: var(--light);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expenditure-details {
+            flex: 1;
+        }
+
+        .expenditure-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .expenditure-date {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .expenditure-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .notification-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .user-btn span {
+                display: none;
+            }
+
+            .about-content,
+            .location-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Homepage -->
+    <section class="homepage active" id="homepage">
+        <div class="animated-bg"></div>
+        <nav class="navbar" id="navbar">
+            <div class="nav-container">
+                <a href="#" class="logo">
+                    <i class="fas fa-seedling"></i>
+                    <span>Farmpay</span>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#location">Location</a></li>
+                    <li><a href="#" onclick="showLoginModal()">Login</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <div class="hero">
+            <div class="hero-content">
+                <h1>Farm Worker Management System</h1>
+                <p>Streamline your farm operations with our comprehensive payroll and attendance management solution. Track workers, calculate salaries, and manage payments all in one place.</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-primary" onclick="showLoginModal()">
+                        <i class="fas fa-rocket"></i> Get Started
+                    </button>
+                    <button class="btn btn-outline" onclick="scrollToFeatures()">
+                        <i class="fas fa-info-circle"></i> Learn More
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features" id="features">
+            <h2>Powerful Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Worker Management</h3>
+                    <p>Efficiently manage all your farm workers with detailed profiles, attendance tracking, and role assignments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3>Attendance Tracking</h3>
+                    <p>Track daily, weekly, and monthly attendance with an intuitive interface that makes monitoring simple.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <h3>Payroll Calculation</h3>
+                    <p>Automatically calculate salaries based on attendance, deductions, and custom pay rates with detailed breakdowns.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <h3>Payment Management</h3>
+                    <p>Process payments, generate receipts, and maintain a complete transaction history with approval workflows.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Analytics & Reports</h3>
+                    <p>Get insights into your farm operations with comprehensive analytics and customizable reports.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobile Responsive</h3>
+                    <p>Access the system from any device with our fully responsive design that works on desktop, tablet, and mobile.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Us Section -->
+        <div class="about-us" id="about">
+            <h2>About Us</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <h3>Empowering Agricultural Businesses</h3>
+                    <p>Farmpay is a comprehensive farm worker management system designed to streamline payroll, attendance, and worker management for agricultural businesses. We understand the unique challenges faced by farm owners and managers in tracking worker productivity and managing payments efficiently.</p>
+                    <p>Our mission is to provide an intuitive, powerful solution that saves time, reduces errors, and improves transparency in farm operations. With Farmpay, you can focus on what matters most - growing your business and supporting your workers.</p>
+                </div>
+                <div class="about-image">
+                    <img src="https://picsum.photos/seed/farmpay/600/400.jpg" alt="Farmpay Team">
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Section -->
+        <div class="location" id="location">
+            <h2>Our Location</h2>
+            <div class="location-content">
+                <div class="location-info">
+                    <h3>Visit Us in Machakos</h3>
+                    <p>Our headquarters is located in the beautiful county of Machakos, Kenya. We're proud to serve agricultural businesses throughout the region and beyond.</p>
+                    <p><i class="fas fa-map-marker-alt"></i> Machakos County, Kenya</p>
+                    <p><i class="fas fa-phone"></i> +254 700 000 000</p>
+                    <p><i class="fas fa-envelope"></i> info@farmpay.com</p>
+                </div>
+                <div class="location-map" id="map"></div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Farmpay</h3>
+                    <p>Farmpay is a comprehensive farm worker management system designed to streamline payroll, attendance, and worker management for agricultural businesses.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#location">Location</a></li>
+                        <li><a href="#" onclick="showLoginModal()">Login</a></li>
+                        <li><a href="#">Support</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Info</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> Machakos County, Kenya</p>
+                    <p><i class="fas fa-phone"></i> +254 700 000 000</p>
+                    <p><i class="fas fa-envelope"></i> info@farmpay.com</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Newsletter</h3>
+                    <p>Subscribe to get updates on new features</p>
+                    <form style="margin-top: 15px;">
+                        <input type="email" placeholder="Your email" style="padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 100%; margin-bottom: 10px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Subscribe</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span id="current-year"></span> Farmpay. All rights reserved.</p>
+                <p class="developer-credit">Developed by Philpeace and Isaac Mumo</p>
+            </div>
+        </footer>
+    </section>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Login to Farmpay</h3>
+                <button class="modal-close" onclick="closeModal('login-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="reg-no">Registration Number</label>
+                        <input type="text" id="reg-no" name="reg-no" required placeholder="Enter your registration number">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+                    <div class="form-options">
+                        <label>
+                            <input type="checkbox" name="remember"> Remember me
+                        </label>
+                        <a href="#">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+                <p style="text-align: center; margin-top: 20px; color: var(--gray);">
+                    Don't have an account? <a href="#" style="color: var(--primary); font-weight: 600;">Contact Superadmin</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-seedling"></i>
+                <h3>Farmpay</h3>
+            </div>
+            <nav class="sidebar-menu" id="sidebar-menu">
+                <!-- Menu items will be dynamically generated -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title" id="page-title">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <button class="notification-btn" id="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <div class="user-dropdown">
+                        <button class="user-btn" id="user-btn">
+                            <img src="https://picsum.photos/seed/user123/35/35.jpg" alt="User">
+                            <span id="user-name">John Doe</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="user-dropdown">
+                            <a href="#" class="dropdown-item" onclick="showProfile()">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                            <a href="#" class="dropdown-item" onclick="showSettings()">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item" onclick="toggleTheme()">
+                                <i class="fas fa-moon"></i> Dark Theme
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content" id="content">
+                <!-- Content will be dynamically loaded -->
+            </div>
+        </main>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notification-panel">
+            <div class="notification-header">
+                <h3 class="notification-title">Notifications</h3>
+                <button class="notification-close" id="notification-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="notification-list" id="notification-list">
+                <!-- Notifications will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Modal -->
+    <div class="modal" id="generic-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="generic-modal-title">Modal Title</h3>
+                <button class="modal-close" onclick="closeModal('generic-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="generic-modal-body">
+                <!-- Content will be dynamically loaded -->
+            </div>
+            <div class="modal-footer" id="generic-modal-footer">
+                <!-- Footer will be dynamically loaded -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Receipt -->
+    <div class="print-receipt" id="print-receipt">
+        <div class="receipt-content">
+            <div class="receipt-header">
+                <div class="receipt-logo">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <div class="receipt-watermark">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <h2 class="receipt-title">Payment Receipt</h2>
+                <p class="receipt-subtitle">Farmpay Management System</p>
+            </div>
+            <div class="receipt-details" id="receipt-details">
+                <!-- Receipt details will be dynamically loaded -->
+            </div>
+            <div class="receipt-footer">
+                <p>Thank you for your hard work!</p>
+                <div class="receipt-signature">
+                    <div class="signature-box">
+                        <div class="signature-line"></div>
+                        <p class="signature-text">Worker Signature</p>
+                    </div>
+                    <div class="signature-box">
+                        <div class="signature-line"></div>
+                        <p class="signature-text">Authorized Signature</p>
+                    </div>
+                </div>
+            </div>
+            <div class="receipt-actions">
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button class="btn btn-outline" onclick="closePrintReceipt()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize app
+        let currentUser = null;
+        let users = [];
+        let attendance = [];
+        let payments = [];
+        let roles = [];
+        let expenditures = [];
+        let messages = [];
+
+        // Set current year
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Initialize map
+        function initMap() {
+            // Coordinates for Machakos, Kenya
+            const machakosCoords = [ -1.5167, 37.2667 ];
+            
+            // Create map
+            const map = L.map('map').setView(machakosCoords, 13);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add marker for Machakos
+            L.marker(machakosCoords).addTo(map)
+                .bindPopup('Farmpay Headquarters<br>Machakos County, Kenya')
+                .openPopup();
+        }
+
+        // Initialize data
+        function initializeData() {
+            // Check if data exists in localStorage
+            const storedUsers = localStorage.getItem('farmpay_users');
+            const storedAttendance = localStorage.getItem('farmpay_attendance');
+            const storedPayments = localStorage.getItem('farmpay_payments');
+            const storedRoles = localStorage.getItem('farmpay_roles');
+            const storedExpenditures = localStorage.getItem('farmpay_expenditures');
+            const storedMessages = localStorage.getItem('farmpay_messages');
+            
+            users = storedUsers ? JSON.parse(storedUsers) : [];
+            attendance = storedAttendance ? JSON.parse(storedAttendance) : [];
+            payments = storedPayments ? JSON.parse(storedPayments) : [];
+            expenditures = storedExpenditures ? JSON.parse(storedExpenditures) : [];
+            messages = storedMessages ? JSON.parse(storedMessages) : [];
+            roles = storedRoles ? JSON.parse(storedRoles) : [
+                { id: 1, name: 'Superadmin', permissions: ['all'] },
+                { id: 2, name: 'Manager', permissions: ['approve_payments', 'view_reports', 'manage_users'] },
+                { id: 3, name: 'Supervisor', permissions: ['mark_attendance', 'view_workers', 'calculate_pay', 'manage_expenditures'] },
+                { id: 4, name: 'Worker', permissions: ['view_profile', 'view_attendance', 'view_payments'] },
+                { id: 5, name: 'Executive', permissions: ['register_users', 'view_reports'] }
+            ];
+            
+            // Create default superadmin if no users exist
+            if (users.length === 0) {
+                const defaultSuperadmin = {
+                    id: Date.now(),
+                    regNo: 'SA/001/26',
+                    username: 'admin',
+                    password: 'admin',
+                    name: 'Superadmin',
+                    email: 'admin@farmpay.com',
+                    phone: '123-456-7890',
+                    address: '123 Farm Road',
+                    role: 'superadmin',
+                    roleId: 1,
+                    profileImage: `https://picsum.photos/seed/admin/200/200.jpg`,
+                    joinedDate: new Date().toISOString().split('T')[0],
+                    status: 'active'
+                };
+                
+                users.push(defaultSuperadmin);
+                localStorage.setItem('farmpay_users', JSON.stringify(users));
+            }
+            
+            // Save roles if not already saved
+            if (!storedRoles) {
+                localStorage.setItem('farmpay_roles', JSON.stringify(roles));
+            }
+        }
+
+        // Generate registration number
+        function generateRegNo(role) {
+            const currentYear = new Date().getFullYear().toString().slice(-2);
+            const rolePrefix = {
+                'worker': 'FP/W',
+                'supervisor': 'SP/F',
+                'manager': 'MG/',
+                'executive': 'EX/',
+                'superadmin': 'SA/'
+            };
+            
+            const prefix = rolePrefix[role] || 'U/';
+            const existingUsers = users.filter(u => u.role === role);
+            const nextNumber = String(existingUsers.length + 1).padStart(3, '0');
+            
+            return `${prefix}${nextNumber}/${currentYear}`;
+        }
+
+        // Get user by registration number
+        function getUserByRegNo(regNo) {
+            return users.find(u => u.regNo === regNo);
+        }
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Scroll to features
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show login modal
+        function showLoginModal() {
+            document.getElementById('login-modal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Handle login
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const regNo = document.getElementById('reg-no').value;
+            const password = document.getElementById('password').value;
+            
+            // Find user by registration number
+            let user = getUserByRegNo(regNo);
+            
+            if (user && user.password === password) {
+                currentUser = user;
+                sessionStorage.setItem('farmpay_current_user', JSON.stringify(user));
+                
+                // Close login modal and show dashboard
+                closeModal('login-modal');
+                document.getElementById('homepage').classList.remove('active');
+                document.getElementById('dashboard').classList.add('active');
+                
+                // Initialize dashboard
+                initializeDashboard();
+            } else {
+                showNotification('Invalid registration number or password!', 'danger');
+            }
+        });
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            // Update user name
+            document.getElementById('user-name').textContent = currentUser.name;
+            
+            // Generate sidebar menu based on role
+            const sidebarMenu = document.getElementById('sidebar-menu');
+            sidebarMenu.innerHTML = '';
+            
+            const menuItems = getMenuItems(currentUser.role);
+            
+            menuItems.forEach((item, index) => {
+                const menuItem = document.createElement('a');
+                menuItem.href = '#';
+                menuItem.className = 'menu-item';
+                if (index === 0) menuItem.classList.add('active');
+                menuItem.innerHTML = `
+                    <i class="${item.icon}"></i>
+                    <span>${item.text}</span>
+                    ${item.badge ? `<span class="badge">${item.badge}</span>` : ''}
+                `;
+                menuItem.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Update active menu
+                    document.querySelectorAll('.menu-item').forEach(mi => mi.classList.remove('active'));
+                    menuItem.classList.add('active');
+                    
+                    // Update page title
+                    document.getElementById('page-title').textContent = item.text;
+                    
+                    // Load content
+                    loadContent(item.id);
+                });
+                sidebarMenu.appendChild(menuItem);
+            });
+            
+            // Load initial content
+            loadContent(menuItems[0].id);
+            
+            // Load notifications
+            loadNotifications();
+        }
+
+        // Get menu items based on role
+        function getMenuItems(role) {
+            if (role === 'superadmin') {
+                return [
+                    { id: 'dashboard', text: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                    { id: 'user-management', text: 'User Management', icon: 'fas fa-users' },
+                    { id: 'role-management', text: 'Role Management', icon: 'fas fa-user-cog' },
+                    { id: 'attendance', text: 'Attendance', icon: 'fas fa-calendar-check' },
+                    { id: 'payments', text: 'Payments', icon: 'fas fa-dollar-sign' },
+                    { id: 'expenditures', text: 'Expenditures', icon: 'fas fa-receipt' },
+                    { id: 'reports', text: 'Reports', icon: 'fas fa-chart-line' },
+                    { id: 'messages', text: 'Messages', icon: 'fas fa-envelope' },
+                    { id: 'settings', text: 'Settings', icon: 'fas fa-cog' }
+                ];
+            } else if (role === 'manager') {
+                return [
+                    { id: 'dashboard', text: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                    { id: 'workers', text: 'Workers', icon: 'fas fa-users' },
+                    { id: 'attendance', text: 'Attendance', icon: 'fas fa-calendar-check' },
+                    { id: 'payments', text: 'Payments', icon: 'fas fa-dollar-sign' },
+                    { id: 'expenditures', text: 'Expenditures', icon: 'fas fa-receipt' },
+                    { id: 'reports', text: 'Reports', icon: 'fas fa-chart-line' },
+                    { id: 'messages', text: 'Messages', icon: 'fas fa-envelope' }
+                ];
+            } else if (role === 'supervisor') {
+                return [
+                    { id: 'dashboard', text: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                    { id: 'workers', text: 'Workers', icon: 'fas fa-users' },
+                    { id: 'attendance', text: 'Mark Attendance', icon: 'fas fa-calendar-check' },
+                    { id: 'calculate-pay', text: 'Calculate Pay', icon: 'fas fa-calculator' },
+                    { id: 'expenditures', text: 'Expenditures', icon: 'fas fa-receipt' },
+                    { id: 'messages', text: 'Messages', icon: 'fas fa-envelope' }
+                ];
+            } else if (role === 'executive') {
+                return [
+                    { id: 'dashboard', text: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                    { id: 'register-users', text: 'Register Users', icon: 'fas fa-user-plus' },
+                    { id: 'reports', text: 'Reports', icon: 'fas fa-chart-line' },
+                    { id: 'messages', text: 'Messages', icon: 'fas fa-envelope' }
+                ];
+            } else if (role === 'worker') {
+                return [
+                    { id: 'dashboard', text: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                    { id: 'profile', text: 'My Profile', icon: 'fas fa-user' },
+                    { id: 'attendance', text: 'My Attendance', icon: 'fas fa-calendar-check' },
+                    { id: 'payments', text: 'My Payments', icon: 'fas fa-dollar-sign' },
+                    { id: 'messages', text: 'Messages', icon: 'fas fa-envelope' }
+                ];
+            }
+            return [];
+        }
+
+        // Load content
+        function loadContent(contentId) {
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            
+            switch(contentId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'profile':
+                    loadProfile();
+                    break;
+                case 'user-management':
+                    loadUserManagement();
+                    break;
+                case 'role-management':
+                    loadRoleManagement();
+                    break;
+                case 'attendance':
+                    loadAttendance();
+                    break;
+                case 'payments':
+                    loadPayments();
+                    break;
+                case 'expenditures':
+                    loadExpenditures();
+                    break;
+                case 'workers':
+                    loadWorkers();
+                    break;
+                case 'register-users':
+                    loadRegisterUsers();
+                    break;
+                case 'calculate-pay':
+                    loadCalculatePay();
+                    break;
+                case 'reports':
+                    loadReports();
+                    break;
+                case 'settings':
+                    loadSettings();
+                    break;
+                case 'messages':
+                    loadMessages();
+                    break;
+            }
+        }
+
+        // Load dashboard
+        function loadDashboard() {
+            const content = document.getElementById('content');
+            
+            // Calculate stats
+            const totalWorkers = users.filter(u => u.role === 'worker').length;
+            const totalSupervisors = users.filter(u => u.role === 'supervisor').length;
+            const todayAttendance = attendance.filter(a => a.date === new Date().toISOString().split('T')[0]).length;
+            const pendingPayments = payments.filter(p => p.status === 'pending').length;
+            const totalExpenditures = expenditures.reduce((sum, e) => sum + e.amount, 0);
+            
+            const statsGrid = document.createElement('div');
+            statsGrid.className = 'stats-grid';
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Total Workers</h3>
+                        <p>${totalWorkers}</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Supervisors</h3>
+                        <p>${totalSupervisors}</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Today's Attendance</h3>
+                        <p>${todayAttendance}</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Pending Payments</h3>
+                        <p>${pendingPayments}</p>
+                    </div>
+                </div>
+                ${currentUser.role === 'supervisor' || currentUser.role === 'manager' || currentUser.role === 'superadmin' ? `
+                    <div class="stat-card">
+                        <div class="stat-icon info">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Total Expenditures</h3>
+                            <p>$${totalExpenditures.toFixed(2)}</p>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            
+            content.appendChild(statsGrid);
+            
+            // Recent activity
+            const activityCard = document.createElement('div');
+            activityCard.className = 'card';
+            activityCard.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Recent Activity</h3>
+                </div>
+                <div class="card-body">
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <h3>No recent activity</h3>
+                        <p>Start using the system to see activity here</p>
+                    </div>
+                </div>
+            `;
+            content.appendChild(activityCard);
+        }
+
+        // Load profile
+        function loadProfile() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Profile Information</h3>
+                    <button class="btn btn-primary btn-sm" onclick="editProfile()">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Profile Picture</label>
+                            <div style="text-align: center;">
+                                <img src="${currentUser.profileImage}" alt="${currentUser.name}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 20px;">
+                            </div>
+                        </div>
+                        <div style="display: grid; gap: 20px;">
+                            <div class="form-group">
+                                <label>Registration Number</label>
+                                <input type="text" value="${currentUser.regNo}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" value="${currentUser.name}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" value="${currentUser.email}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" value="${currentUser.phone}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <input type="text" value="${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label>Joined Date</label>
+                                <input type="text" value="${currentUser.joinedDate}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Edit profile
+        function editProfile() {
+            showModal('Edit Profile', `
+                <form id="edit-profile-form">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="edit-name" value="${currentUser.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="edit-email" value="${currentUser.email}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="edit-phone" value="${currentUser.phone}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="edit-address" value="${currentUser.address}" required>
+                    </div>
+                </form>
+            `, `
+                <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+            `);
+        }
+
+        // Save profile
+        function saveProfile() {
+            const updatedUser = {
+                ...currentUser,
+                name: document.getElementById('edit-name').value,
+                email: document.getElementById('edit-email').value,
+                phone: document.getElementById('edit-phone').value,
+                address: document.getElementById('edit-address').value
+            };
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = updatedUser;
+                localStorage.setItem('farmpay_users', JSON.stringify(users));
+            }
+            
+            // Update current user
+            currentUser = updatedUser;
+            sessionStorage.setItem('farmpay_current_user', JSON.stringify(currentUser));
+            
+            // Update UI
+            document.getElementById('user-name').textContent = currentUser.name;
+            
+            closeModal('generic-modal');
+            loadProfile();
+            showNotification('Profile updated successfully!', 'success');
+        }
+
+        // Load user management
+        function loadUserManagement() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">User Management</h3>
+                    <button class="btn btn-primary btn-sm" onclick="addUser()">
+                        <i class="fas fa-plus"></i> Add User
+                    </button>
+                </div>
+                <div class="card-body">
+                    ${users.length > 0 ? `
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Reg No</th>
+                                        <th>Name</th>
+                                        <th>Username</th>
+                                        <th>Role</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${users.map(user => `
+                                        <tr>
+                                            <td>${user.regNo}</td>
+                                            <td>${user.name}</td>
+                                            <td>${user.username}</td>
+                                            <td><span class="badge badge-info">${user.role}</span></td>
+                                            <td>${user.email}</td>
+                                            <td><span class="badge badge-success">${user.status}</span></td>
+                                            <td>
+                                                <button class="btn btn-outline btn-sm" onclick="editUser(${user.id})">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                ${user.role !== 'superadmin' ? `
+                                                    <button class="btn btn-outline btn-sm" onclick="deleteUser(${user.id})">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                ` : ''}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No users found</h3>
+                            <p>Add users to start managing the system</p>
+                        </div>
+                    `}
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Add user
+        function addUser() {
+            showModal('Add New User', `
+                <form id="add-user-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="user-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="user-username" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="user-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="user-role" required onchange="toggleDailyRate()">
+                                <option value="">Select Role</option>
+                                <option value="worker">Worker</option>
+                                <option value="supervisor">Supervisor</option>
+                                <option value="manager">Manager</option>
+                                <option value="executive">Executive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="user-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="user-phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input type="text" id="user-address" required>
+                    </div>
+                    <div class="form-group" id="daily-rate-group" style="display: none;">
+                        <label>Daily Rate ($)</label>
+                        <input type="number" id="user-daily-rate" min="0" step="0.01">
+                    </div>
+                </form>
+            `, `
+                <button class="btn btn-primary" onclick="saveUser()">Add User</button>
+                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+            `);
+        }
+
+        // Toggle daily rate field
+        function toggleDailyRate() {
+            const role = document.getElementById('user-role').value;
+            const dailyRateGroup = document.getElementById('daily-rate-group');
+            
+            if (role === 'worker') {
+                dailyRateGroup.style.display = 'block';
+                document.getElementById('user-daily-rate').required = true;
+            } else {
+                dailyRateGroup.style.display = 'none';
+                document.getElementById('user-daily-rate').required = false;
+            }
+        }
+
+        // Save user
+        function saveUser() {
+            const role = document.getElementById('user-role').value;
+            const roleObj = roles.find(r => r.name.toLowerCase() === role);
+            
+            const newUser = {
+                id: Date.now(),
+                regNo: generateRegNo(role),
+                name: document.getElementById('user-name').value,
+                username: document.getElementById('user-username').value,
+                email: document.getElementById('user-email').value,
+                role: role,
+                roleId: roleObj ? roleObj.id : null,
+                password: document.getElementById('user-password').value,
+                phone: document.getElementById('user-phone').value,
+                address: document.getElementById('user-address').value,
+                profileImage: `https://picsum.photos/seed/${Date.now()}/200/200.jpg`,
+                joinedDate: new Date().toISOString().split('T')[0],
+                status: 'active'
+            };
+            
+            // Add daily rate for workers
+            if (role === 'worker') {
+                newUser.dailyRate = parseFloat(document.getElementById('user-daily-rate').value);
+            }
+            
+            users.push(newUser);
+            localStorage.setItem('farmpay_users', JSON.stringify(users));
+            
+            closeModal('generic-modal');
+            loadUserManagement();
+            showNotification(`User added successfully! Registration Number: ${newUser.regNo}`, 'success');
+        }
+
+        // Edit user
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            
+            if (user) {
+                showModal('Edit User', `
+                    <form id="edit-user-form">
+                        <div class="form-group">
+                            <label>Registration Number</label>
+                            <input type="text" value="${user.regNo}" readonly>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="edit-user-name" value="${user.name}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" id="edit-user-username" value="${user.username}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="edit-user-email" value="${user.email}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="edit-user-phone" value="${user.phone}" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" id="edit-user-address" value="${user.address}" required>
+                        </div>
+                        ${user.role === 'worker' ? `
+                            <div class="form-group">
+                                <label>Daily Rate ($)</label>
+                                <input type="number" id="edit-user-daily-rate" value="${user.dailyRate}" min="0" step="0.01">
+                            </div>
+                        ` : ''}
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="edit-user-status">
+                                <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
+                                <option value="inactive" ${user.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                    </form>
+                `, `
+                    <button class="btn btn-primary" onclick="updateUser(${userId})">Update User</button>
+                    <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+                `);
+            }
+        }
+
+        // Update user
+        function updateUser(userId) {
+            const userIndex = users.findIndex(u => u.id === userId);
+            
+            if (userIndex !== -1) {
+                const updatedUser = {
+                    ...users[userIndex],
+                    name: document.getElementById('edit-user-name').value,
+                    username: document.getElementById('edit-user-username').value,
+                    email: document.getElementById('edit-user-email').value,
+                    phone: document.getElementById('edit-user-phone').value,
+                    address: document.getElementById('edit-user-address').value,
+                    status: document.getElementById('edit-user-status').value
+                };
+                
+                if (users[userIndex].role === 'worker') {
+                    updatedUser.dailyRate = parseFloat(document.getElementById('edit-user-daily-rate').value);
+                }
+                
+                users[userIndex] = updatedUser;
+                localStorage.setItem('farmpay_users', JSON.stringify(users));
+                
+                // Update current user if editing self
+                if (currentUser.id === userId) {
+                    currentUser = updatedUser;
+                    sessionStorage.setItem('farmpay_current_user', JSON.stringify(currentUser));
+                    document.getElementById('user-name').textContent = currentUser.name;
+                }
+                
+                closeModal('generic-modal');
+                loadUserManagement();
+                showNotification('User updated successfully!', 'success');
+            }
+        }
+
+        // Delete user
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                users = users.filter(u => u.id !== userId);
+                localStorage.setItem('farmpay_users', JSON.stringify(users));
+                loadUserManagement();
+                showNotification('User deleted successfully!', 'success');
+            }
+        }
+
+        // Load role management
+        function loadRoleManagement() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Role Management</h3>
+                    <button class="btn btn-primary btn-sm" onclick="addRole()">
+                        <i class="fas fa-plus"></i> Add Role
+                    </button>
+                </div>
+                <div class="card-body">
+                    ${roles.length > 0 ? `
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Role Name</th>
+                                        <th>Permissions</th>
+                                        <th>Users Count</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${roles.map(role => {
+                                        const userCount = users.filter(u => u.roleId === role.id).length;
+                                        return `
+                                            <tr>
+                                                <td>${role.name}</td>
+                                                <td>${role.permissions.join(', ')}</td>
+                                                <td>${userCount}</td>
+                                                <td>
+                                                    ${role.id > 5 ? `
+                                                        <button class="btn btn-outline btn-sm" onclick="editRole(${role.id})">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <button class="btn btn-outline btn-sm" onclick="deleteRole(${role.id})">
+                                                            <i class="fas fa-trash"></i> Delete
+                                                        </button>
+                                                    ` : 'System Role'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="empty-state">
+                            <i class="fas fa-user-cog"></i>
+                            <h3>No roles found</h3>
+                            <p>Add roles to manage user permissions</p>
+                        </div>
+                    `}
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Add role
+        function addRole() {
+            showModal('Add New Role', `
+                <form id="add-role-form">
+                    <div class="form-group">
+                        <label>Role Name</label>
+                        <input type="text" id="role-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Permissions</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <label><input type="checkbox" name="permission" value="all"> All Permissions</label>
+                            <label><input type="checkbox" name="permission" value="manage_users"> Manage Users</label>
+                            <label><input type="checkbox" name="permission" value="register_users"> Register Users</label>
+                            <label><input type="checkbox" name="permission" value="mark_attendance"> Mark Attendance</label>
+                            <label><input type="checkbox" name="permission" value="view_attendance"> View Attendance</label>
+                            <label><input type="checkbox" name="permission" value="calculate_pay"> Calculate Pay</label>
+                            <label><input type="checkbox" name="permission" value="approve_payments"> Approve Payments</label>
+                            <label><input type="checkbox" name="permission" value="view_payments"> View Payments</label>
+                            <label><input type="checkbox" name="permission" value="view_reports"> View Reports</label>
+                            <label><input type="checkbox" name="permission" value="send_messages"> Send Messages</label>
+                            <label><input type="checkbox" name="permission" value="manage_expenditures"> Manage Expenditures</label>
+                        </div>
+                    </div>
+                </form>
+            `, `
+                <button class="btn btn-primary" onclick="saveRole()">Add Role</button>
+                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+            `);
+        }
+
+        // Save role
+        function saveRole() {
+            const checkboxes = document.querySelectorAll('input[name="permission"]:checked');
+            const permissions = Array.from(checkboxes).map(cb => cb.value);
+            
+            const newRole = {
+                id: Date.now(),
+                name: document.getElementById('role-name').value,
+                permissions: permissions
+            };
+            
+            roles.push(newRole);
+            localStorage.setItem('farmpay_roles', JSON.stringify(roles));
+            
+            closeModal('generic-modal');
+            loadRoleManagement();
+            showNotification('Role added successfully!', 'success');
+        }
+
+        // Load attendance
+        function loadAttendance() {
+            const content = document.getElementById('content');
+            
+            if (currentUser.role === 'worker') {
+                // Worker view - show their attendance
+                const workerAttendance = attendance.filter(a => a.workerId === currentUser.id);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">My Attendance</h3>
+                    </div>
+                    <div class="card-body">
+                        ${workerAttendance.length > 0 ? `
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Check In</th>
+                                            <th>Check Out</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${workerAttendance.slice(-10).reverse().map(a => `
+                                            <tr>
+                                                <td>${a.date}</td>
+                                                <td>${a.checkIn}</td>
+                                                <td>${a.checkOut}</td>
+                                                <td>${a.hours}</td>
+                                                <td><span class="badge badge-success">${a.status}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <h3>No attendance records</h3>
+                                <p>Your attendance will appear here once marked</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+                content.appendChild(card);
+            } else {
+                // Supervisor/Manager view - mark attendance
+                const workers = users.filter(u => u.role === 'worker');
+                const today = new Date().toISOString().split('T')[0];
+                const todayAttendance = attendance.filter(a => a.date === today);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">Mark Attendance - ${today}</h3>
+                        <button class="btn btn-primary btn-sm" onclick="markAllPresent()">
+                            <i class="fas fa-check-double"></i> Mark All Present
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        ${workers.length > 0 ? `
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Reg No</th>
+                                            <th>Worker</th>
+                                            <th>Status</th>
+                                            <th>Check In</th>
+                                            <th>Check Out</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${workers.map(worker => {
+                                            const workerAttendance = todayAttendance.find(a => a.workerId === worker.id);
+                                            return `
+                                                <tr>
+                                                    <td>${worker.regNo}</td>
+                                                    <td>${worker.name}</td>
+                                                    <td>
+                                                        ${workerAttendance ? 
+                                                            `<span class="badge badge-success">Present</span>` : 
+                                                            `<span class="badge badge-warning">Not Marked</span>`
+                                                        }
+                                                    </td>
+                                                    <td>${workerAttendance ? workerAttendance.checkIn : '-'}</td>
+                                                    <td>${workerAttendance ? workerAttendance.checkOut : '-'}</td>
+                                                    <td>
+                                                        ${!workerAttendance ? `
+                                                            <button class="btn btn-primary btn-sm" onclick="markAttendance(${worker.id})">
+                                                                <i class="fas fa-check"></i> Mark Present
+                                                            </button>
+                                                        ` : `
+                                                            <button class="btn btn-outline btn-sm" onclick="editAttendance(${workerAttendance.id})">
+                                                                <i class="fas fa-edit"></i> Edit
+                                                            </button>
+                                                        `}
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h3>No workers found</h3>
+                                <p>Add workers to start marking attendance</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+                content.appendChild(card);
+            }
+        }
+
+        // Load calculate pay
+        function loadCalculatePay() {
+            const content = document.getElementById('content');
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const workers = users.filter(u => u.role === 'worker');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Calculate Pay - ${currentMonth}</h3>
+                    <button class="btn btn-primary btn-sm" onclick="calculateAllPay()">
+                        <i class="fas fa-calculator"></i> Calculate All
+                    </button>
+                </div>
+                <div class="card-body">
+                    ${workers.length > 0 ? `
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Reg No</th>
+                                        <th>Worker</th>
+                                        <th>Days Present</th>
+                                        <th>Total Hours</th>
+                                        <th>Daily Rate</th>
+                                        <th>Gross Pay</th>
+                                        <th>Deductions</th>
+                                        <th>Net Pay</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${workers.map(worker => {
+                                        const monthAttendance = attendance.filter(a => 
+                                            a.workerId === worker.id && a.date.startsWith(currentMonth)
+                                        );
+                                        const totalHours = monthAttendance.reduce((sum, a) => sum + a.hours, 0);
+                                        const daysPresent = monthAttendance.length;
+                                        const grossPay = totalHours * worker.dailyRate;
+                                        const deductions = grossPay * 0.1; // 10% deduction
+                                        const netPay = grossPay - deductions;
+                                        
+                                        const existingPayment = payments.find(p => 
+                                            p.workerId === worker.id && p.period === currentMonth
+                                        );
+                                        
+                                        return `
+                                            <tr>
+                                                <td>${worker.regNo}</td>
+                                                <td>${worker.name}</td>
+                                                <td>${daysPresent}</td>
+                                                <td>${totalHours}</td>
+                                                <td>$${worker.dailyRate}</td>
+                                                <td>$${grossPay.toFixed(2)}</td>
+                                                <td>$${deductions.toFixed(2)}</td>
+                                                <td>$${netPay.toFixed(2)}</td>
+                                                <td>
+                                                    ${existingPayment ? 
+                                                        `<span class="badge badge-success">Calculated</span>` : 
+                                                        `<span class="badge badge-warning">Not Calculated</span>`
+                                                    }
+                                                </td>
+                                                <td>
+                                                    ${!existingPayment && totalHours > 0 ? `
+                                                        <button class="btn btn-primary btn-sm" onclick="calculateWorkerPay(${worker.id})">
+                                                            <i class="fas fa-calculator"></i> Calculate
+                                                        </button>
+                                                    ` : existingPayment ? `
+                                                        <button class="btn btn-outline btn-sm" onclick="viewPayDetails(${existingPayment.id})">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </button>
+                                                    ` : '-'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No workers found</h3>
+                            <p>Add workers to start calculating pay</p>
+                        </div>
+                    `}
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Calculate worker pay
+        function calculateWorkerPay(workerId) {
+            const worker = users.find(u => u.id === workerId);
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            
+            if (worker) {
+                const monthAttendance = attendance.filter(a => 
+                    a.workerId === workerId && a.date.startsWith(currentMonth)
+                );
+                const totalHours = monthAttendance.reduce((sum, a) => sum + a.hours, 0);
+                const grossPay = totalHours * worker.dailyRate;
+                const deductions = grossPay * 0.1;
+                const netPay = grossPay - deductions;
+                
+                // Check if payment already exists
+                const existingPayment = payments.find(p => 
+                    p.workerId === workerId && p.period === currentMonth
+                );
+                
+                if (!existingPayment && totalHours > 0) {
+                    const newPayment = {
+                        id: Date.now(),
+                        workerId: workerId,
+                        period: currentMonth,
+                        totalHours: totalHours,
+                        daysPresent: monthAttendance.length,
+                        grossPay: grossPay,
+                        deductions: deductions,
+                        netPay: netPay,
+                        status: 'pending',
+                        date: null
+                    };
+                    
+                    payments.push(newPayment);
+                    localStorage.setItem('farmpay_payments', JSON.stringify(payments));
+                    
+                    loadCalculatePay();
+                    showNotification('Pay calculated successfully!', 'success');
+                } else if (totalHours === 0) {
+                    showNotification('No attendance found for this worker this month!', 'warning');
+                } else {
+                    showNotification('Pay already calculated for this worker!', 'info');
+                }
+            }
+        }
+
+        // Calculate all pay
+        function calculateAllPay() {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            const workers = users.filter(u => u.role === 'worker');
+            let calculatedCount = 0;
+            
+            workers.forEach(worker => {
+                const monthAttendance = attendance.filter(a => 
+                    a.workerId === worker.id && a.date.startsWith(currentMonth)
+                );
+                const totalHours = monthAttendance.reduce((sum, a) => sum + a.hours, 0);
+                const grossPay = totalHours * worker.dailyRate;
+                const deductions = grossPay * 0.1;
+                const netPay = grossPay - deductions;
+                
+                // Check if payment already exists
+                const existingPayment = payments.find(p => 
+                    p.workerId === worker.id && p.period === currentMonth
+                );
+                
+                if (!existingPayment && totalHours > 0) {
+                    const newPayment = {
+                        id: Date.now() + Math.random(),
+                        workerId: worker.id,
+                        period: currentMonth,
+                        totalHours: totalHours,
+                        daysPresent: monthAttendance.length,
+                        grossPay: grossPay,
+                        deductions: deductions,
+                        netPay: netPay,
+                        status: 'pending',
+                        date: null
+                    };
+                    
+                    payments.push(newPayment);
+                    calculatedCount++;
+                }
+            });
+            
+            if (calculatedCount > 0) {
+                localStorage.setItem('farmpay_payments', JSON.stringify(payments));
+                loadCalculatePay();
+                showNotification(`${calculatedCount} payment(s) calculated successfully!`, 'success');
+            } else {
+                showNotification('No new payments to calculate', 'info');
+            }
+        }
+
+        // Load payments
+        function loadPayments() {
+            const content = document.getElementById('content');
+            
+            if (currentUser.role === 'worker') {
+                // Worker view - show their payments
+                const workerPayments = payments.filter(p => p.workerId === currentUser.id);
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">My Payments</h3>
+                        <button class="btn btn-primary btn-sm" onclick="requestPayment()">
+                            <i class="fas fa-dollar-sign"></i> Request Payment
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        ${workerPayments.length > 0 ? `
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Period</th>
+                                            <th>Days Present</th>
+                                            <th>Total Hours</th>
+                                            <th>Gross Pay</th>
+                                            <th>Deductions</th>
+                                            <th>Net Pay</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${workerPayments.map(p => `
+                                            <tr>
+                                                <td>${p.period}</td>
+                                                <td>${p.daysPresent}</td>
+                                                <td>${p.totalHours}</td>
+                                                <td>$${p.grossPay.toFixed(2)}</td>
+                                                <td>$${p.deductions.toFixed(2)}</td>
+                                                <td>$${p.netPay.toFixed(2)}</td>
+                                                <td><span class="badge badge-${p.status === 'approved' ? 'success' : 'warning'}">${p.status}</span></td>
+                                                <td>${p.date || '-'}</td>
+                                                <td>
+                                                    ${p.status === 'approved' ? `
+                                                        <button class="btn btn-outline btn-sm" onclick="printReceipt(${p.id})">
+                                                            <i class="fas fa-print"></i> Receipt
+                                                        </button>
+                                                    ` : '-'}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-dollar-sign"></i>
+                                <h3>No payments yet</h3>
+                                <p>Request your first payment to see it here</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+                content.appendChild(card);
+            } else {
+                // Supervisor/Manager view - manage payments
+                const allPayments = payments.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="card-title">Payment Management</h3>
+                        <button class="btn btn-primary btn-sm" onclick="calculatePayroll()">
+                            <i class="fas fa-calculator"></i> Calculate Payroll
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        ${allPayments.length > 0 ? `
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Worker</th>
+                                            <th>Period</th>
+                                            <th>Net Pay</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${allPayments.map(p => {
+                                            const worker = users.find(u => u.id === p.workerId);
+                                            return `
+                                                <tr>
+                                                    <td>${worker ? `${worker.regNo} - ${worker.name}` : 'Unknown'}</td>
+                                                    <td>${p.period}</td>
+                                                    <td>$${p.netPay.toFixed(2)}</td>
+                                                    <td><span class="badge badge-${p.status === 'approved' ? 'success' : 'warning'}">${p.status}</span></td>
+                                                    <td>
+                                                        ${p.status === 'pending' && (currentUser.role === 'manager' || currentUser.role === 'superadmin') ? `
+                                                            <button class="btn btn-primary btn-sm" onclick="approvePayment(${p.id})">
+                                                                <i class="fas fa-check"></i> Approve
+                                                            </button>
+                                                        ` : ''}
+                                                        <button class="btn btn-outline btn-sm" onclick="viewPaymentDetails(${p.id})">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-dollar-sign"></i>
+                                <h3>No payments found</h3>
+                                <p>Calculate payroll to generate payments</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+                content.appendChild(card);
+            }
+        }
+
+        // Load expenditures
+        function loadExpenditures() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Expenditure Management</h3>
+                    <button class="btn btn-primary btn-sm" onclick="addExpenditure()">
+                        <i class="fas fa-plus"></i> Add Expenditure
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="expenditure-form">
+                        <h4>Quick Add Expenditure</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" id="quick-exp-title" placeholder="e.g., Fertilizer Purchase">
+                            </div>
+                            <div class="form-group">
+                                <label>Amount ($)</label>
+                                <input type="number" id="quick-exp-amount" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="quick-exp-description" rows="2" placeholder="Brief description of the expenditure"></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="quickAddExpenditure()">
+                            <i class="fas fa-plus"></i> Add Expenditure
+                        </button>
+                    </div>
+                    
+                    <h4 style="margin-top: 30px; margin-bottom: 15px;">Recent Expenditures</h4>
+                    <div class="expenditure-list">
+                        ${expenditures.length > 0 ? expenditures.slice(-10).reverse().map(exp => `
+                            <div class="expenditure-item">
+                                <div class="expenditure-details">
+                                    <div class="expenditure-title">${exp.title}</div>
+                                    <div class="expenditure-date">${exp.date} - ${exp.description}</div>
+                                </div>
+                                <div class="expenditure-amount">$${exp.amount.toFixed(2)}</div>
+                            </div>
+                        `).join('') : `
+                            <div class="empty-state">
+                                <i class="fas fa-receipt"></i>
+                                <h3>No expenditures recorded</h3>
+                                <p>Add expenditures to track farm expenses</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Quick add expenditure
+        function quickAddExpenditure() {
+            const title = document.getElementById('quick-exp-title').value;
+            const amount = parseFloat(document.getElementById('quick-exp-amount').value);
+            const description = document.getElementById('quick-exp-description').value;
+            
+            if (!title || !amount) {
+                showNotification('Please fill in all required fields', 'warning');
+                return;
+            }
+            
+            const newExpenditure = {
+                id: Date.now(),
+                title: title,
+                amount: amount,
+                description: description,
+                date: new Date().toISOString().split('T')[0],
+                recordedBy: currentUser.id,
+                posted: true // Mark as posted live
+            };
+            
+            expenditures.push(newExpenditure);
+            localStorage.setItem('farmpay_expenditures', JSON.stringify(expenditures));
+            
+            // Clear form
+            document.getElementById('quick-exp-title').value = '';
+            document.getElementById('quick-exp-amount').value = '';
+            document.getElementById('quick-exp-description').value = '';
+            
+            // Reload expenditures
+            loadExpenditures();
+            
+            showNotification('Expenditure added successfully and posted live!', 'success');
+        }
+
+        // Add expenditure
+        function addExpenditure() {
+            showModal('Add New Expenditure', `
+                <form id="add-expenditure-form">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="exp-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount ($)</label>
+                        <input type="number" id="exp-amount" min="0" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="exp-date" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="exp-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="exp-posted" checked> Post Live (Visible to all users)
+                        </label>
+                    </div>
+                </form>
+            `, `
+                <button class="btn btn-primary" onclick="saveExpenditure()">Add Expenditure</button>
+                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+            `);
+        }
+
+        // Save expenditure
+        function saveExpenditure() {
+            const newExpenditure = {
+                id: Date.now(),
+                title: document.getElementById('exp-title').value,
+                amount: parseFloat(document.getElementById('exp-amount').value),
+                date: document.getElementById('exp-date').value,
+                description: document.getElementById('exp-description').value,
+                recordedBy: currentUser.id,
+                posted: document.getElementById('exp-posted').checked
+            };
+            
+            expenditures.push(newExpenditure);
+            localStorage.setItem('farmpay_expenditures', JSON.stringify(expenditures));
+            
+            closeModal('generic-modal');
+            loadExpenditures();
+            
+            const message = newExpenditure.posted ? 
+                'Expenditure added successfully and posted live!' : 
+                'Expenditure added successfully!';
+            showNotification(message, 'success');
+        }
+
+        // Load workers
+        function loadWorkers() {
+            const content = document.getElementById('content');
+            const workers = users.filter(u => u.role === 'worker');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Workers Management</h3>
+                </div>
+                <div class="card-body">
+                    ${workers.length > 0 ? `
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Reg No</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Daily Rate</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${workers.map(worker => `
+                                        <tr>
+                                            <td>${worker.regNo}</td>
+                                            <td>${worker.name}</td>
+                                            <td>${worker.email}</td>
+                                            <td>${worker.phone}</td>
+                                            <td>$${worker.dailyRate}/day</td>
+                                            <td><span class="badge badge-success">${worker.status}</span></td>
+                                            <td>
+                                                <button class="btn btn-outline btn-sm" onclick="viewWorker(${worker.id})">
+                                                    <i class="fas fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No workers found</h3>
+                            <p>Workers will appear here once added by the superadmin or executive</p>
+                        </div>
+                    `}
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Load register users
+        function loadRegisterUsers() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Register Users</h3>
+                </div>
+                <div class="card-body">
+                    <form id="register-user-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="reg-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" id="reg-username" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="reg-email" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="reg-role" required onchange="toggleRegDailyRate()">
+                                    <option value="">Select Role</option>
+                                    <option value="worker">Worker</option>
+                                    <option value="supervisor">Supervisor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="reg-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="reg-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" id="reg-address" required>
+                        </div>
+                        <div class="form-group" id="reg-daily-rate-group" style="display: none;">
+                            <label>Daily Rate ($)</label>
+                            <input type="number" id="reg-daily-rate" min="0" step="0.01">
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Register User
+                            </button>
+                            <button type="reset" class="btn btn-outline">Clear</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            content.appendChild(card);
+            
+            // Handle role change
+            document.getElementById('reg-role').addEventListener('change', function() {
+                const dailyRateGroup = document.getElementById('reg-daily-rate-group');
+                if (this.value === 'worker') {
+                    dailyRateGroup.style.display = 'block';
+                    document.getElementById('reg-daily-rate').required = true;
+                } else {
+                    dailyRateGroup.style.display = 'none';
+                    document.getElementById('reg-daily-rate').required = false;
+                }
+            });
+            
+            // Handle form submission
+            document.getElementById('register-user-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const roleName = document.getElementById('reg-role').value;
+                const role = roles.find(r => r.name.toLowerCase() === roleName);
+                
+                const newUser = {
+                    id: Date.now(),
+                    regNo: generateRegNo(roleName),
+                    name: document.getElementById('reg-name').value,
+                    username: document.getElementById('reg-username').value,
+                    email: document.getElementById('reg-email').value,
+                    role: roleName,
+                    roleId: role ? role.id : null,
+                    password: document.getElementById('reg-password').value,
+                    phone: document.getElementById('reg-phone').value,
+                    address: document.getElementById('reg-address').value,
+                    profileImage: `https://picsum.photos/seed/${Date.now()}/200/200.jpg`,
+                    joinedDate: new Date().toISOString().split('T')[0],
+                    status: 'active'
+                };
+                
+                // Add daily rate for workers
+                if (roleName === 'worker') {
+                    newUser.dailyRate = parseFloat(document.getElementById('reg-daily-rate').value);
+                }
+                
+                users.push(newUser);
+                localStorage.setItem('farmpay_users', JSON.stringify(users));
+                
+                // Reset form
+                this.reset();
+                document.getElementById('reg-daily-rate-group').style.display = 'none';
+                
+                showNotification(`User registered successfully! Registration Number: ${newUser.regNo}`, 'success');
+            });
+        }
+
+        // Toggle daily rate for registration
+        function toggleRegDailyRate() {
+            const role = document.getElementById('reg-role').value;
+            const dailyRateGroup = document.getElementById('reg-daily-rate-group');
+            
+            if (role === 'worker') {
+                dailyRateGroup.style.display = 'block';
+                document.getElementById('reg-daily-rate').required = true;
+            } else {
+                dailyRateGroup.style.display = 'none';
+                document.getElementById('reg-daily-rate').required = false;
+            }
+        }
+
+        // Load reports
+        function loadReports() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Reports & Analytics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Users</h3>
+                                <p>${users.length}</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Attendance</h3>
+                                <p>${attendance.length}</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon warning">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Total Payments</h3>
+                                <p>$${payments.reduce((sum, p) => sum + p.netPay, 0).toFixed(2)}</p>
+                            </div>
+                        </div>
+                        ${currentUser.role === 'supervisor' || currentUser.role === 'manager' || currentUser.role === 'superadmin' ? `
+                            <div class="stat-card">
+                                <div class="stat-icon info">
+                                    <i class="fas fa-receipt"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3>Total Expenditures</h3>
+                                    <p>$${expenditures.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Load settings
+        function loadSettings() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">System Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(this, 'general')">General</div>
+                        <div class="tab" onclick="switchTab(this, 'notifications')">Notifications</div>
+                        <div class="tab" onclick="switchTab(this, 'security')">Security</div>
+                    </div>
+                    <div class="tab-content active" id="general">
+                        <div class="form-group">
+                            <label>System Name</label>
+                            <input type="text" value="Farmpay Management System">
+                        </div>
+                        <div class="form-group">
+                            <label>Default Daily Rate</label>
+                            <input type="number" value="50" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Currency</label>
+                            <select>
+                                <option>USD ($)</option>
+                                <option>EUR (€)</option>
+                                <option>GBP (£)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="notifications">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" checked> Email Notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" checked> Payment Reminders
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> Daily Reports
+                            </label>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="security">
+                        <div class="form-group">
+                            <label>Session Timeout (minutes)</label>
+                            <input type="number" value="30" min="5">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> Require strong passwords
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> Enable two-factor authentication
+                            </label>
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+            `;
+            content.appendChild(card);
+        }
+
+        // Load messages
+        function loadMessages() {
+            const content = document.getElementById('content');
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">Messages</h3>
+                    <button class="btn btn-primary btn-sm" onclick="composeMessage()">
+                        <i class="fas fa-plus"></i> Compose
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="tabs">
+                        <div class="tab active" onclick="switchTab(this, 'inbox')">Inbox</div>
+                        <div class="tab" onclick="switchTab(this, 'sent')">Sent</div>
+                        <div class="tab" onclick="switchTab(this, 'compose')">Compose</div>
+                    </div>
+                    <div class="tab-content active" id="inbox">
+                        ${messages.filter(m => m.recipient === currentUser.id).length > 0 ? `
+                            <div class="message-list">
+                                ${messages.filter(m => m.recipient === currentUser.id).map(msg => `
+                                    <div class="message ${msg.sender === currentUser.id ? 'sent' : 'received'}">
+                                        <div>${msg.content}</div>
+                                        <div class="message-time">${msg.time}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h3>No messages</h3>
+                                <p>Your inbox is empty</p>
+                            </div>
+                        `}
+                    </div>
+                    <div class="tab-content" id="sent">
+                        ${messages.filter(m => m.sender === currentUser.id).length > 0 ? `
+                            <div class="message-list">
+                                ${messages.filter(m => m.sender === currentUser.id).map(msg => `
+                                    <div class="message sent">
+                                        <div>To: ${getUserName(msg.recipient)} - ${msg.content}</div>
+                                        <div class="message-time">${msg.time}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="empty-state">
+                                <i class="fas fa-paper-plane"></i>
+                                <h3>No sent messages</h3>
+                                <p>Messages you send will appear here</p>
+                            </div>
+                        `}
+                    </div>
+                    <div class="tab-content" id="compose">
+                        <form id="compose-form">
+                            <div class="form-group">
+                                <label>To</label>
+                                <select id="message-to" required>
+                                    <option value="">Select Recipient</option>
+                                    ${currentUser.role === 'worker' ? `
+                                        <option value="manager">Manager</option>
+                                    ` : ''}
+                                    ${currentUser.role === 'supervisor' || currentUser.role === 'manager' || currentUser.role === 'executive' ? `
+                                        <option value="all">All Workers</option>
+                                    ` : ''}
+                                    ${users.filter(u => u.id !== currentUser.id).map(u => `
+                                        <option value="${u.id}">${u.name} (${u.role})</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <input type="text" id="message-subject" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Message</label>
+                                <textarea id="message-body" rows="5" required></textarea>
+                            </div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane"></i> Send Message
+                                </button>
+                                <button type="reset" class="btn btn-outline">Clear</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            content.appendChild(card);
+            
+            // Handle compose form
+            document.getElementById('compose-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const recipient = document.getElementById('message-to').value;
+                const subject = document.getElementById('message-subject').value;
+                const content = document.getElementById('message-body').value;
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                if (recipient === 'all') {
+                    // Send to all workers
+                    const workers = users.filter(u => u.role === 'worker');
+                    workers.forEach(worker => {
+                        const newMessage = {
+                            id: Date.now() + Math.random(),
+                            sender: currentUser.id,
+                            recipient: worker.id,
+                            subject: subject,
+                            content: content,
+                            time: timeString,
+                            date: now.toISOString().split('T')[0]
+                        };
+                        messages.push(newMessage);
+                    });
+                    
+                    showNotification(`Message sent to all workers!`, 'success');
+                } else if (recipient === 'manager') {
+                    // Send to all managers
+                    const managers = users.filter(u => u.role === 'manager');
+                    managers.forEach(manager => {
+                        const newMessage = {
+                            id: Date.now() + Math.random(),
+                            sender: currentUser.id,
+                            recipient: manager.id,
+                            subject: subject,
+                            content: content,
+                            time: timeString,
+                            date: now.toISOString().split('T')[0]
+                        };
+                        messages.push(newMessage);
+                    });
+                    
+                    showNotification(`Message sent to managers!`, 'success');
+                } else {
+                    // Send to specific user
+                    const newMessage = {
+                        id: Date.now(),
+                        sender: currentUser.id,
+                        recipient: parseInt(recipient),
+                        subject: subject,
+                        content: content,
+                        time: timeString,
+                        date: now.toISOString().split('T')[0]
+                    };
+                    messages.push(newMessage);
+                    
+                    showNotification('Message sent successfully!', 'success');
+                }
+                
+                localStorage.setItem('farmpay_messages', JSON.stringify(messages));
+                this.reset();
+                
+                // Switch to sent tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('sent').classList.add('active');
+                
+                // Reload messages
+                loadMessages();
+            });
+        }
+
+        // Get user name by ID
+        function getUserName(userId) {
+            const user = users.find(u => u.id === userId);
+            return user ? user.name : 'Unknown';
+        }
+
+        // Switch tab
+        function switchTab(tabElement, tabId) {
+            // Update active tab
+            const tabs = tabElement.parentElement.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            tabElement.classList.add('active');
+            
+            // Update active content
+            const contents = tabElement.parentElement.parentElement.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Show modal
+        function showModal(title, body, footer) {
+            document.getElementById('generic-modal-title').textContent = title;
+            document.getElementById('generic-modal-body').innerHTML = body;
+            document.getElementById('generic-modal-footer').innerHTML = footer || '';
+            document.getElementById('generic-modal').classList.add('active');
+        }
+
+        // Show profile
+        function showProfile() {
+            loadProfile();
+        }
+
+        // Show settings
+        function showSettings() {
+            loadSettings();
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            localStorage.setItem('darkTheme', isDark);
+            
+            // Update button text
+            const themeBtn = document.querySelector('.dropdown-item:nth-child(4)');
+            if (themeBtn) {
+                themeBtn.innerHTML = `<i class="fas fa-${isDark ? 'sun' : 'moon'}"></i> ${isDark ? 'Light' : 'Dark'} Theme`;
+            }
+        }
+
+        // Logout
+        function logout() {
+            sessionStorage.removeItem('farmpay_current_user');
+            currentUser = null;
+            
+            document.getElementById('dashboard').classList.remove('active');
+            document.getElementById('homepage').classList.add('active');
+            
+            showNotification('Logged out successfully!', 'success');
+        }
+
+        // Load notifications
+        function loadNotifications() {
+            const notificationList = document.getElementById('notification-list');
+            
+            const notifications = [
+                {
+                    title: 'Welcome to Farmpay!',
+                    message: 'Get started by exploring the dashboard features.',
+                    time: 'Just now',
+                    read: false
+                },
+                {
+                    title: 'System Update',
+                    message: 'New features have been added to improve your experience.',
+                    time: '1 hour ago',
+                    read: false
+                },
+                {
+                    title: 'Tip of the Day',
+                    message: 'You can mark attendance for multiple workers at once.',
+                    time: '2 hours ago',
+                    read: true
+                }
+            ];
+            
+            notificationList.innerHTML = notifications.map(n => `
+                <div class="notification-item ${!n.read ? 'unread' : ''}">
+                    <div class="notification-item-header">
+                        <div class="notification-item-title">${n.title}</div>
+                        <div class="notification-item-time">${n.time}</div>
+                    </div>
+                    <div class="notification-item-message">${n.message}</div>
+                </div>
+            `).join('');
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'var(--success)' : type === 'danger' ? 'var(--danger)' : type === 'warning' ? 'var(--warning)' : 'var(--info)'};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+                z-index: 4000;
+                animation: slideInRight 0.3s ease;
+                max-width: 300px;
+            `;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('notification-btn').addEventListener('click', function() {
+            document.getElementById('notification-panel').classList.toggle('active');
+        });
+
+        document.getElementById('notification-close').addEventListener('click', function() {
+            document.getElementById('notification-panel').classList.remove('active');
+        });
+
+        document.getElementById('user-btn').addEventListener('click', function() {
+            document.getElementById('user-dropdown').classList.toggle('active');
+        });
+
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.user-dropdown')) {
+                document.getElementById('user-dropdown').classList.remove('active');
+            }
+            if (!e.target.closest('.notification-panel') && !e.target.closest('.notification-btn')) {
+                document.getElementById('notification-panel').classList.remove('active');
+            }
+        });
+
+        // Add animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+            
+            @keyframes slideOutRight {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeData();
+            
+            // Initialize map when location section is visible
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        initMap();
+                        observer.disconnect();
+                    }
+                });
+            });
+            
+            const locationSection = document.getElementById('location');
+            if (locationSection) {
+                observer.observe(locationSection);
+            }
+            
+            // Load theme preference
+            if (localStorage.getItem('darkTheme') === 'true') {
+                document.body.classList.add('dark-theme');
+                const themeBtn = document.querySelector('.dropdown-item:nth-child(4)');
+                if (themeBtn) {
+                    themeBtn.innerHTML = '<i class="fas fa-sun"></i> Light Theme';
+                }
+            }
+        });
+
+        // Placeholder functions for features not yet implemented
+        function editRole(roleId) {
+            showNotification('Role editing feature coming soon!', 'info');
+        }
+
+        function deleteRole(roleId) {
+            if (confirm('Are you sure you want to delete this role?')) {
+                roles = roles.filter(r => r.id !== roleId);
+                localStorage.setItem('farmpay_roles', JSON.stringify(roles));
+                loadRoleManagement();
+                showNotification('Role deleted successfully!', 'success');
+            }
+        }
+
+        function markAttendance(workerId) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            showModal('Mark Attendance', `
+                <form id="mark-attendance-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Check In Time</label>
+                            <input type="time" id="check-in" value="08:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Check Out Time</label>
+                            <input type="time" id="check-out" value="17:00" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="attendance-notes" rows="3" placeholder="Any additional notes..."></textarea>
+                    </div>
+                </form>
+            `, `
+                <button class="btn btn-primary" onclick="saveAttendance(${workerId})">Save Attendance</button>
+                <button class="btn btn-outline" onclick="closeModal('generic-modal')">Cancel</button>
+            `);
+        }
+
+        function saveAttendance(workerId) {
+            const today = new Date().toISOString().split('T')[0];
+            const checkIn = document.getElementById('check-in').value;
+            const checkOut = document.getElementById('check-out').value;
+            
+            // Calculate hours
+            const [inHour, inMin] = checkIn.split(':').map(Number);
+            const [outHour, outMin] = checkOut.split(':').map(Number);
+            const hours = ((outHour * 60 + outMin) - (inHour * 60 + inMin)) / 60;
+            
+            const attendanceRecord = {
+                id: Date.now(),
+                workerId: workerId,
+                date: today,
+                checkIn: checkIn,
+                checkOut: checkOut,
+                hours: hours,
+                status: 'present'
+            };
+            
+            attendance.push(attendanceRecord);
+            localStorage.setItem('farmpay_attendance', JSON.stringify(attendance));
+            
+            closeModal('generic-modal');
+            loadAttendance();
+            showNotification('Attendance marked successfully!', 'success');
+        }
+
+        function markAllPresent() {
+            const today = new Date().toISOString().split('T')[0];
+            const workers = users.filter(u => u.role === 'worker');
+            
+            workers.forEach(worker => {
+                // Check if already marked
+                const existing = attendance.find(a => a.workerId === worker.id && a.date === today);
+                if (!existing) {
+                    attendance.push({
+                        id: Date.now() + Math.random(),
+                        workerId: worker.id,
+                        date: today,
+                        checkIn: '08:00',
+                        checkOut: '17:00',
+                        hours: 9,
+                        status: 'present'
+                    });
+                }
+            });
+            
+            localStorage.setItem('farmpay_attendance', JSON.stringify(attendance));
+            loadAttendance();
+            showNotification('All workers marked present!', 'success');
+        }
+
+        function editAttendance(attendanceId) {
+            showNotification('Attendance editing feature coming soon!', 'info');
+        }
+
+        function requestPayment() {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            
+            // Check if already requested
+            const existingPayment = payments.find(p => p.workerId === currentUser.id && p.period === currentMonth);
+            
+            if (existingPayment) {
+                showNotification('Payment already requested for this month!', 'warning');
+                return;
+            }
+            
+            // Check if pay is calculated
+            const calculatedPayment = payments.find(p => p.workerId === currentUser.id && p.period === currentMonth);
+            
+            if (!calculatedPayment) {
+                showNotification('Pay not calculated yet. Please wait for supervisor to calculate your pay.', 'warning');
+                return;
+            }
+            
+            // Update status to requested
+            calculatedPayment.status = 'requested';
+            localStorage.setItem('farmpay_payments', JSON.stringify(payments));
+            
+            loadPayments();
+            showNotification('Payment request submitted successfully!', 'success');
+        }
+
+        function calculatePayroll() {
+            calculateAllPay();
+        }
+
+        function approvePayment(paymentId) {
+            const paymentIndex = payments.findIndex(p => p.id === paymentId);
+            
+            if (paymentIndex !== -1) {
+                payments[paymentIndex].status = 'approved';
+                payments[paymentIndex].date = new Date().toISOString().split('T')[0];
+                
+                localStorage.setItem('farmpay_payments', JSON.stringify(payments));
+                
+                loadPayments();
+                showNotification('Payment approved successfully!', 'success');
+            }
+        }
+
+        function viewPaymentDetails(paymentId) {
+            const payment = payments.find(p => p.id === paymentId);
+            const worker = users.find(u => u.id === payment.workerId);
+            
+            if (payment && worker) {
+                showModal('Payment Details', `
+                    <div class="form-group">
+                        <label>Worker</label>
+                        <input type="text" value="${worker.regNo} - ${worker.name}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Period</label>
+                        <input type="text" value="${payment.period}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Days Present</label>
+                        <input type="text" value="${payment.daysPresent}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Hours</label>
+                        <input type="text" value="${payment.totalHours}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Gross Pay</label>
+                        <input type="text" value="$${payment.grossPay.toFixed(2)}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Deductions (10%)</label>
+                        <input type="text" value="$${payment.deductions.toFixed(2)}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Net Pay</label>
+                        <input type="text" value="$${payment.netPay.toFixed(2)}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <input type="text" value="${payment.status}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Date</label>
+                        <input type="text" value="${payment.date || 'Not yet paid'}" readonly>
+                    </div>
+                `, `
+                    ${payment.status === 'pending' && (currentUser.role === 'manager' || currentUser.role === 'superadmin') ? `
+                        <button class="btn btn-primary" onclick="approvePayment(${paymentId}); closeModal('generic-modal');">Approve Payment</button>
+                    ` : ''}
+                    <button class="btn btn-outline" onclick="closeModal('generic-modal')">Close</button>
+                `);
+            }
+        }
+
+        function viewWorker(workerId) {
+            const worker = users.find(u => u.id === workerId);
+            
+            if (worker) {
+                showModal('Worker Details', `
+                    <div class="form-group">
+                        <label>Registration Number</label>
+                        <input type="text" value="${worker.regNo}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Profile Picture</label>
+                        <div style="text-align: center;">
+                            <img src="${worker.profileImage}" alt="${worker.name}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 20px;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" value="${worker.name}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" value="${worker.username}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" value="${worker.email}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" value="${worker.phone}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" value="${worker.role}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Daily Rate</label>
+                        <input type="text" value="$${worker.dailyRate}/day" readonly>
+                    </div>
+                `, `
+                    <button class="btn btn-outline" onclick="closeModal('generic-modal')">Close</button>
+                `);
+            }
+        }
+
+        function printReceipt(paymentId) {
+            const payment = payments.find(p => p.id === paymentId);
+            const worker = users.find(u => u.id === payment.workerId);
+            
+            if (payment && worker) {
+                const receiptDetails = document.getElementById('receipt-details');
+                receiptDetails.innerHTML = `
+                    <div class="receipt-row">
+                        <span>Receipt No:</span>
+                        <span>#${payment.id}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Date:</span>
+                        <span>${new Date().toLocaleDateString()}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Worker Reg No:</span>
+                        <span>${worker.regNo}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Worker Name:</span>
+                        <span>${worker.name}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Payment Period:</span>
+                        <span>${payment.period}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Days Present:</span>
+                        <span>${payment.daysPresent}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Total Hours:</span>
+                        <span>${payment.totalHours}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Gross Pay:</span>
+                        <span>$${payment.grossPay.toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Deductions (10%):</span>
+                        <span>$${payment.deductions.toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Net Pay:</span>
+                        <span>$${payment.netPay.toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Payment Date:</span>
+                        <span>${payment.date || 'Pending'}</span>
+                    </div>
+                `;
+                
+                document.getElementById('print-receipt').classList.add('active');
+            }
+        }
+
+        function closePrintReceipt() {
+            document.getElementById('print-receipt').classList.remove('active');
+        }
+
+        function composeMessage() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab')[2].classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('compose').classList.add('active');
+        }
+
+        function saveSettings() {
+            showNotification('Settings saved successfully!', 'success');
+        }
+
+        function viewPayDetails(paymentId) {
+            viewPaymentDetails(paymentId);
+        }
+    </script>
+</body>
+</html>
